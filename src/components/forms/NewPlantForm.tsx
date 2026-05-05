@@ -10,7 +10,6 @@ interface Props {
 }
 
 const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
-const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
 
 export default function NewPlantForm({ companyId }: Props) {
   const router = useRouter();
@@ -21,6 +20,7 @@ export default function NewPlantForm({ companyId }: Props) {
     location: '',
     capacity_kw: '',
     installed_date: '',
+    tariff_per_kwh: '5.00',
     latitude: '',
     longitude: '',
   });
@@ -40,6 +40,12 @@ export default function NewPlantForm({ companyId }: Props) {
         return;
       }
 
+      if (!formData.tariff_per_kwh || parseFloat(formData.tariff_per_kwh) <= 0) {
+        toast.error('Please enter a valid tariff rate');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('plants')
         .insert({
@@ -48,6 +54,7 @@ export default function NewPlantForm({ companyId }: Props) {
           location: formData.location,
           capacity_kw: parseFloat(formData.capacity_kw),
           installed_date: formData.installed_date,
+          tariff_per_kwh: parseFloat(formData.tariff_per_kwh),
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           status: 'active',
@@ -77,7 +84,7 @@ export default function NewPlantForm({ companyId }: Props) {
         <input type="text" name="location" value={formData.location} onChange={handleChange} required placeholder="e.g., 123 Solar Road, Phoenix, AZ" className={inputClass} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Capacity (kW) *</label>
           <input type="number" name="capacity_kw" value={formData.capacity_kw} onChange={handleChange} step="0.01" min="0" required placeholder="500" className={inputClass} />
@@ -85,6 +92,10 @@ export default function NewPlantForm({ companyId }: Props) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Installed Date *</label>
           <input type="date" name="installed_date" value={formData.installed_date} onChange={handleChange} required className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Tariff (₹/kWh) *</label>
+          <input type="number" name="tariff_per_kwh" value={formData.tariff_per_kwh} onChange={handleChange} step="0.01" min="0.01" required placeholder="5.00" className={inputClass} />
         </div>
       </div>
 

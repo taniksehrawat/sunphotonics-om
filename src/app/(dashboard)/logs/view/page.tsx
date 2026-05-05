@@ -28,7 +28,7 @@ export default async function ViewLogsPage({
     .from('daily_logs')
     .select(`
       *,
-      plants(name),
+      plants(name, tariff_per_kwh),
       created_by_user:profiles!daily_logs_created_by_fkey(full_name)
     `)
     .eq('company_id', profile.company_id)
@@ -49,7 +49,7 @@ export default async function ViewLogsPage({
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Daily Logs</h1>
-          <p className="text-gray-500 text-sm">View and filter submitted logs</p>
+          <p className="text-gray-500 text-sm">View and filter submitted logs with revenue</p>
         </div>
         <Link
           href="/logs/new"
@@ -102,18 +102,19 @@ export default async function ViewLogsPage({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plant</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Generation</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Downtime</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Weather</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Engineer</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plant</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Generation</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Downtime</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Weather</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Engineer</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {logs?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                     No logs found.{' '}
                     <Link href="/logs/new" className="text-yellow-600 hover:underline">
                       Submit your first log
@@ -121,24 +122,37 @@ export default async function ViewLogsPage({
                   </td>
                 </tr>
               )}
-              {logs?.map((log: any) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {format(new Date(log.log_date), 'MMM dd, yyyy')}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{log.plants?.name}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {Number(log.generation_kwh).toLocaleString()} kWh
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{log.downtime_minutes} min</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 capitalize">
-                      {log.weather_condition?.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{log.created_by_user?.full_name}</td>
-                </tr>
-              ))}
+              {logs?.map((log: any) => {
+                const tariff = log.plants?.tariff_per_kwh || 5;
+                const revenue = Number(log.generation_kwh) * tariff;
+                return (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                      {format(new Date(log.log_date), 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {log.plants?.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right whitespace-nowrap">
+                      {Number(log.generation_kwh).toLocaleString()} kWh
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-green-600 text-right whitespace-nowrap">
+                      ₹{revenue.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 text-right whitespace-nowrap">
+                      {log.downtime_minutes} min
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 capitalize">
+                        {log.weather_condition?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                      {log.created_by_user?.full_name}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

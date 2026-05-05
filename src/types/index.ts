@@ -39,6 +39,7 @@ export interface Plant {
   status: 'active' | 'inactive' | 'maintenance';
   latitude?: number;
   longitude?: number;
+  tariff_per_kwh: number;
   created_at: string;
   updated_at: string;
 }
@@ -90,7 +91,7 @@ export interface PerformanceMetrics {
   total_generation_kwh: number;
   total_capacity_kw: number;
   performance_ratio: number;
-  cuf: number; // Capacity Utilization Factor
+  cuf: number;
   downtime_hours: number;
 }
 
@@ -106,4 +107,21 @@ export interface Alert {
   message: string;
   is_read: boolean;
   created_at: string;
+}
+
+// Revenue
+export interface PlantRevenue {
+  plant_name: string;
+  capacity_kw: number;
+  tariff_per_kwh: number;
+  today_generation: number;
+  today_revenue: number;
+  month_generation: number;
+  month_revenue: number;
+}
+
+export interface RevenueChartData {
+  date: string;
+  revenue: number;
+  generation: number;
 }

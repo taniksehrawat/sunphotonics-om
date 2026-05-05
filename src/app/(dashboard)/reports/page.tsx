@@ -58,7 +58,7 @@ export default function ReportsPage() {
       .from('daily_logs')
       .select(`
         *,
-        plants(name, capacity_kw)
+        plants(name, capacity_kw, tariff_per_kwh)
       `)
       .eq('company_id', profile?.company_id)
       .gte('log_date', dateRange.start)
@@ -95,11 +95,12 @@ export default function ReportsPage() {
       doc.text(`Period: ${format(new Date(dateRange.start), 'MMM dd, yyyy')} - ${format(new Date(dateRange.end), 'MMM dd, yyyy')}`, 14, 30);
       doc.text(`Generated: ${format(new Date(), 'PPpp')}`, 14, 38);
 
-      // Table data
+      // Table data with revenue
       const tableData = data.map((log: any) => [
         format(new Date(log.log_date), 'MM/dd/yyyy'),
         log.plants?.name || '-',
         `${Number(log.generation_kwh).toLocaleString()} kWh`,
+        `₹${(Number(log.generation_kwh) * (log.plants?.tariff_per_kwh || 5)).toLocaleString('en-IN')}`,
         `${log.downtime_minutes} min`,
         log.weather_condition || '-',
         log.notes || '-',
@@ -108,22 +109,26 @@ export default function ReportsPage() {
       // Generate table
       autoTable(doc, {
         startY: 44,
-        head: [['Date', 'Plant', 'Generation', 'Downtime', 'Weather', 'Notes']],
+        head: [['Date', 'Plant', 'Generation', 'Revenue', 'Downtime', 'Weather', 'Notes']],
         body: tableData,
         headStyles: { fillColor: [234, 179, 8] },
-        styles: { fontSize: 8 },
-        margin: { left: 14, right: 14 },
+        styles: { fontSize: 7 },
+        margin: { left: 10, right: 10 },
       });
 
       // Summary
       const totalGen = data.reduce((sum: number, log: any) => sum + Number(log.generation_kwh), 0);
+      const totalRevenue = data.reduce((sum: number, log: any) => 
+        sum + (Number(log.generation_kwh) * (log.plants?.tariff_per_kwh || 5)), 0
+      );
       const totalDowntime = data.reduce((sum: number, log: any) => sum + log.downtime_minutes, 0);
 
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(11);
       doc.text(`Total Generation: ${totalGen.toLocaleString()} kWh`, 14, finalY);
-      doc.text(`Total Downtime: ${totalDowntime} minutes`, 14, finalY + 8);
-      doc.text(`Number of Entries: ${data.length}`, 14, finalY + 16);
+      doc.text(`Total Revenue: ₹${totalRevenue.toLocaleString('en-IN')}`, 14, finalY + 8);
+      doc.text(`Total Downtime: ${totalDowntime} minutes`, 14, finalY + 16);
+      doc.text(`Number of Entries: ${data.length}`, 14, finalY + 24);
 
       doc.save(`generation-report-${dateRange.start}-to-${dateRange.end}.pdf`);
       toast.success('PDF report generated');
@@ -152,6 +157,8 @@ export default function ReportsPage() {
         { header: 'Date', key: 'date', width: 15 },
         { header: 'Plant', key: 'plant', width: 25 },
         { header: 'Generation (kWh)', key: 'generation', width: 18 },
+        { header: 'Tariff (₹/kWh)', key: 'tariff', width: 14 },
+        { header: 'Revenue (₹)', key: 'revenue', width: 18 },
         { header: 'Peak Power (kW)', key: 'peak', width: 18 },
         { header: 'Downtime (min)', key: 'downtime', width: 15 },
         { header: 'Weather', key: 'weather', width: 15 },
@@ -160,10 +167,14 @@ export default function ReportsPage() {
       ];
 
       data.forEach((log: any) => {
+        const tariff = log.plants?.tariff_per_kwh || 5;
+        const generation = Number(log.generation_kwh);
         worksheet.addRow({
           date: log.log_date,
           plant: log.plants?.name,
-          generation: Number(log.generation_kwh),
+          generation: generation,
+          tariff: tariff,
+          revenue: generation * tariff,
           peak: Number(log.peak_power_kw || 0),
           downtime: log.downtime_minutes,
           weather: log.weather_condition,
@@ -180,10 +191,24 @@ export default function ReportsPage() {
         fgColor: { argb: 'FFEAB308' },
       };
 
+      // Revenue column formatting
+      worksheet.getColumn('revenue').numFmt = '₹#,##0.00';
+      worksheet.getColumn('tariff').numFmt = '₹#,##0.00';
+
       // Summary
       const totalGen = data.reduce((sum: number, log: any) => sum + Number(log.generation_kwh), 0);
+      const totalRevenue = data.reduce((sum: number, log: any) => 
+        sum + (Number(log.generation_kwh) * (log.plants?.tariff_per_kwh || 5)), 0
+      );
+
       worksheet.addRow({});
-      worksheet.addRow({ date: 'TOTAL', generation: totalGen });
+      const summaryRow = worksheet.addRow({
+        date: 'TOTAL',
+        generation: totalGen,
+        revenue: totalRevenue,
+      });
+      summaryRow.font = { bold: true };
+      summaryRow.getCell('revenue').numFmt = '₹#,##0.00';
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -205,7 +230,7 @@ export default function ReportsPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-bold text-gray-900">Generate Reports</h1>
-        <p className="text-gray-500 text-sm">Download generation reports in PDF or Excel format</p>
+        <p className="text-gray-500 text-sm">Download generation & revenue reports in PDF or Excel format</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
