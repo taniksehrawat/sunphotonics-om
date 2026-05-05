@@ -79,7 +79,6 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
 
       uploadedUrls.push(urlData.publicUrl);
 
-      // Save to log_images table
       await supabase.from('log_images').insert({
         log_id: logId,
         image_url: urlData.publicUrl,
@@ -108,7 +107,6 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
         return;
       }
 
-      // Insert log
       const { data: log, error: logError } = await supabase
         .from('daily_logs')
         .insert({
@@ -136,7 +134,6 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
         return;
       }
 
-      // Upload images
       if (images.length > 0) {
         await uploadImages(log.id);
       }
@@ -151,6 +148,9 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
     }
   };
 
+  const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+  const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       {/* Plant Selection */}
@@ -163,7 +163,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
           value={formData.plant_id}
           onChange={handleChange}
           required
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+          className={selectClass}
         >
           <option value="">Select a plant</option>
           {plants.map((plant) => (
@@ -184,7 +184,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
           onChange={handleChange}
           max={new Date().toISOString().split('T')[0]}
           required
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+          className={inputClass}
         />
       </div>
 
@@ -202,7 +202,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
           min="0"
           required
           placeholder="0.00"
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+          className={inputClass}
         />
       </div>
 
@@ -220,7 +220,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
             step="0.01"
             min="0"
             placeholder="0.00"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+            className={inputClass}
           />
         </div>
         <div>
@@ -234,7 +234,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
             onChange={handleChange}
             min="0"
             placeholder="0"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+            className={inputClass}
           />
         </div>
       </div>
@@ -248,7 +248,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
             name="weather_condition"
             value={formData.weather_condition}
             onChange={handleChange}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+            className={selectClass}
           >
             <option value="sunny">Sunny</option>
             <option value="partly_cloudy">Partly Cloudy</option>
@@ -267,7 +267,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
             onChange={handleChange}
             step="0.1"
             placeholder="25.0"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+            className={inputClass}
           />
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function DailyLogForm({ plants, userId, companyId }: Props) {
           onChange={handleChange}
           rows={3}
           placeholder="Any observations, issues, or remarks..."
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
+          className={inputClass}
         />
       </div>
 
