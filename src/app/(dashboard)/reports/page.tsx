@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { Download, FileText, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 
@@ -85,52 +84,197 @@ export default function ReportsPage() {
       }
 
       const doc = new jsPDF();
-
-      // Title
-      doc.setFontSize(16);
-      doc.text('Sunphotonics O&M - Generation Report', 14, 20);
-
-      // Period info
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      // ============================================
+      // HEADER - Company Name & Logo Area
+      // ============================================
+      doc.setFillColor(234, 179, 8);
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Sunphotonics O&M', 14, 22);
+      
       doc.setFontSize(10);
-      doc.text(`Period: ${format(new Date(dateRange.start), 'MMM dd, yyyy')} - ${format(new Date(dateRange.end), 'MMM dd, yyyy')}`, 14, 30);
-      doc.text(`Generated: ${format(new Date(), 'PPpp')}`, 14, 38);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Solar EPC Operations & Maintenance Report', 14, 30);
 
-      // Table data with revenue
-      const tableData = data.map((log: any) => [
-        format(new Date(log.log_date), 'MM/dd/yyyy'),
-        log.plants?.name || '-',
-        `${Number(log.generation_kwh).toLocaleString()} kWh`,
-        `₹${(Number(log.generation_kwh) * (log.plants?.tariff_per_kwh || 5)).toLocaleString('en-IN')}`,
-        `${log.downtime_minutes} min`,
-        log.weather_condition || '-',
-        log.notes || '-',
-      ]);
+      // ============================================
+      // REPORT TITLE
+      // ============================================
+      doc.setTextColor(50, 50, 50);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Generation & Revenue Report', 14, 50);
 
-      // Generate table
-      autoTable(doc, {
-        startY: 44,
-        head: [['Date', 'Plant', 'Generation', 'Revenue', 'Downtime', 'Weather', 'Notes']],
-        body: tableData,
-        headStyles: { fillColor: [234, 179, 8] },
-        styles: { fontSize: 7 },
-        margin: { left: 10, right: 10 },
-      });
+      // ============================================
+      // META INFORMATION BOX
+      // ============================================
+      doc.setDrawColor(220, 220, 220);
+      doc.setFillColor(250, 250, 250);
+      doc.roundedRect(14, 58, pageWidth - 28, 22, 3, 3, 'FD');
+      
+      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      
+      const periodText = `Report Period: ${format(new Date(dateRange.start), 'MMMM dd, yyyy')}  -  ${format(new Date(dateRange.end), 'MMMM dd, yyyy')}`;
+      const generatedText = `Generated on: ${format(new Date(), 'PPP \'at\' p')}`;
+      const plantFilterText = plantId && plants.length > 0 
+        ? `Plant: ${plants.find(p => p.id === plantId)?.name || 'All Plants'}`
+        : 'Plants: All Plants';
+      
+      doc.text(periodText, 20, 67);
+      doc.text(generatedText, 20, 74);
+      doc.text(plantFilterText, pageWidth - 20, 67, { align: 'right' });
 
-      // Summary
+      // ============================================
+      // SUMMARY CARDS
+      // ============================================
       const totalGen = data.reduce((sum: number, log: any) => sum + Number(log.generation_kwh), 0);
       const totalRevenue = data.reduce((sum: number, log: any) => 
         sum + (Number(log.generation_kwh) * (log.plants?.tariff_per_kwh || 5)), 0
       );
       const totalDowntime = data.reduce((sum: number, log: any) => sum + log.downtime_minutes, 0);
+      const avgGeneration = data.length > 0 ? totalGen / data.length : 0;
+      
+      const cardY = 88;
+      const cardWidth = (pageWidth - 28) / 4 - 4;
+      
+      const cards = [
+        { label: 'Total Generation', value: `${totalGen.toLocaleString()} kWh`, color: [234, 179, 8] },
+        { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, color: [22, 163, 74] },
+        { label: 'Total Downtime', value: `${totalDowntime} minutes`, color: [220, 38, 38] },
+        { label: 'Avg Daily Gen', value: `${avgGeneration.toFixed(0)} kWh`, color: [37, 99, 235] },
+      ];
+      
+      cards.forEach((card, index) => {
+        const x = 14 + (cardWidth + 4) * index;
+        
+        doc.setFillColor(card.color[0], card.color[1], card.color[2]);
+        doc.roundedRect(x, cardY, cardWidth, 24, 3, 3, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(card.label, x + cardWidth / 2, cardY + 10, { align: 'center' });
+        
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text(card.value, x + cardWidth / 2, cardY + 21, { align: 'center' });
+      });
 
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setFontSize(11);
-      doc.text(`Total Generation: ${totalGen.toLocaleString()} kWh`, 14, finalY);
-      doc.text(`Total Revenue: ₹${totalRevenue.toLocaleString('en-IN')}`, 14, finalY + 8);
-      doc.text(`Total Downtime: ${totalDowntime} minutes`, 14, finalY + 16);
-      doc.text(`Number of Entries: ${data.length}`, 14, finalY + 24);
+      // ============================================
+      // DATA TABLE
+      // ============================================
+      const tableStartY = 120;
+      
+      // Table headers
+      doc.setFillColor(50, 50, 50);
+      doc.rect(14, tableStartY, pageWidth - 28, 10, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      
+      const headers = ['Date', 'Plant', 'Generation', 'Tariff', 'Revenue', 'Downtime', 'Weather'];
+      const colWidths = [25, 40, 25, 20, 25, 20, 25];
+      let colX = 16;
+      
+      headers.forEach((header, i) => {
+        doc.text(header, colX + colWidths[i] / 2, tableStartY + 7, { align: 'center' });
+        colX += colWidths[i];
+      });
 
-      doc.save(`generation-report-${dateRange.start}-to-${dateRange.end}.pdf`);
+      // Table rows
+      let rowY = tableStartY + 10;
+      doc.setFont('helvetica', 'normal');
+      
+      data.forEach((log: any, index: number) => {
+        // Check if we need a new page
+        if (rowY > pageHeight - 40) {
+          doc.addPage();
+          rowY = 20;
+        }
+        
+        const rowColor = index % 2 === 0 ? [255, 255, 255] : [248, 248, 248];
+        doc.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
+        doc.rect(14, rowY, pageWidth - 28, 8, 'F');
+        
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(7.5);
+        
+        const tariff = log.plants?.tariff_per_kwh || 5;
+        const revenue = Number(log.generation_kwh) * tariff;
+        
+        const rowData = [
+          format(new Date(log.log_date), 'dd/MM/yy'),
+          log.plants?.name?.substring(0, 22) || '-',
+          `${Number(log.generation_kwh).toLocaleString()} kWh`,
+          `₹${tariff.toFixed(2)}`,
+          `₹${revenue.toLocaleString('en-IN')}`,
+          `${log.downtime_minutes} min`,
+          log.weather_condition || '-',
+        ];
+        
+        let dataX = 16;
+        rowData.forEach((item, i) => {
+          const align = i === 0 || i === 1 || i === 6 ? 'left' : 'right';
+          const xPos = align === 'right' ? dataX + colWidths[i] - 2 : dataX + 2;
+          doc.text(String(item), xPos, rowY + 6, { align });
+          dataX += colWidths[i];
+        });
+        
+        rowY += 8;
+      });
+
+      // ============================================
+      // TOTALS ROW
+      // ============================================
+      if (rowY > pageHeight - 30) {
+        doc.addPage();
+        rowY = 20;
+      }
+      
+      doc.setDrawColor(234, 179, 8);
+      doc.setLineWidth(0.5);
+      doc.line(14, rowY, pageWidth - 14, rowY);
+      rowY += 3;
+      
+      doc.setFillColor(255, 251, 235);
+      doc.roundedRect(14, rowY, pageWidth - 28, 10, 2, 2, 'F');
+      
+      doc.setTextColor(50, 50, 50);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      
+      doc.text('TOTAL', 18, rowY + 7);
+      doc.text(`${totalGen.toLocaleString()} kWh`, 14 + 25 + 40 + 25 - 2, rowY + 7, { align: 'right' });
+      doc.text(`₹${totalRevenue.toLocaleString('en-IN')}`, 14 + 25 + 40 + 25 + 20 + 25 - 2, rowY + 7, { align: 'right' });
+      doc.text(`${totalDowntime} min`, 14 + 25 + 40 + 25 + 20 + 25 + 20 - 2, rowY + 7, { align: 'right' });
+      doc.text(`${data.length} entries`, 14 + 25 + 40 + 25 + 20 + 25 + 20 + 25 - 2, rowY + 7, { align: 'right' });
+
+      // ============================================
+      // FOOTER
+      // ============================================
+      const footerY = pageHeight - 15;
+      doc.setDrawColor(220, 220, 220);
+      doc.line(14, footerY, pageWidth - 14, footerY);
+      
+      doc.setTextColor(150, 150, 150);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Sunphotonics O&M - Automated Report', 14, footerY + 5);
+      doc.text('www.sunphotonics.com', pageWidth / 2, footerY + 5, { align: 'center' });
+      doc.text(`Page 1 of 1`, pageWidth - 14, footerY + 5, { align: 'right' });
+
+      // ============================================
+      // SAVE
+      // ============================================
+      doc.save(`Sunphotonics_Report_${dateRange.start}_to_${dateRange.end}.pdf`);
       toast.success('PDF report generated');
     } catch (err: any) {
       toast.error(err.message);
@@ -215,7 +359,7 @@ export default function ReportsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `generation-report-${dateRange.start}-to-${dateRange.end}.xlsx`;
+      a.download = `Sunphotonics_Report_${dateRange.start}_to_${dateRange.end}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Excel report generated');
