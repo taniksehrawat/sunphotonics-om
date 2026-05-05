@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
+const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500";
+
 export default async function ViewLogsPage({
   searchParams,
 }: {
@@ -12,7 +15,6 @@ export default async function ViewLogsPage({
   const profile = await getProfile();
   const supabase = await createClient();
 
-  // ✅ FIX: Await searchParams before accessing
   const params = await searchParams;
 
   // Fetch plants for filter
@@ -66,7 +68,7 @@ export default async function ViewLogsPage({
             <select
               name="plant"
               defaultValue={params.plant || ''}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-yellow-500 focus:border-yellow-500"
+              className={selectClass}
             >
               <option value="">All Plants</option>
               {plants?.map((plant) => (
@@ -80,7 +82,7 @@ export default async function ViewLogsPage({
               type="date"
               name="date"
               defaultValue={params.date || ''}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-yellow-500 focus:border-yellow-500"
+              className={inputClass}
             />
           </div>
           <div className="flex items-end">
