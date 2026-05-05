@@ -16,6 +16,9 @@ const STATUS_FLOW: Record<string, string[]> = {
   closed: [],
 };
 
+const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500";
+
 export default function TicketDetailClient({ ticket, images, engineers, currentUser }: any) {
   const router = useRouter();
   const supabase = createClient();
@@ -229,7 +232,7 @@ export default function TicketDetailClient({ ticket, images, engineers, currentU
                   onChange={(e) => setResolutionNotes(e.target.value)}
                   rows={3}
                   placeholder="Describe how the issue was resolved..."
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className={inputClass}
                 />
               </div>
             )}
@@ -241,7 +244,7 @@ export default function TicketDetailClient({ ticket, images, engineers, currentU
                 <select
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className={selectClass}
                 >
                   <option value="">Unassigned</option>
                   {engineers.map((eng: any) => (

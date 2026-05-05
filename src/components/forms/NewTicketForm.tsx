@@ -14,6 +14,9 @@ interface Props {
   companyId: string;
 }
 
+const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+
 export default function NewTicketForm({ plants, engineers, userId, companyId }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -84,7 +87,6 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
 
       if (error) throw error;
 
-      // Upload images
       if (images.length > 0 && ticket) {
         for (const image of images) {
           const fileExt = image.name.split('.').pop();
@@ -122,16 +124,9 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      {/* Plant */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Plant *</label>
-        <select
-          name="plant_id"
-          value={formData.plant_id}
-          onChange={handleChange}
-          required
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-        >
+        <select name="plant_id" value={formData.plant_id} onChange={handleChange} required className={selectClass}>
           <option value="">Select plant</option>
           {plants.map((plant) => (
             <option key={plant.id} value={plant.id}>{plant.name}</option>
@@ -139,43 +134,20 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
         </select>
       </div>
 
-      {/* Title */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-        <input
-          type="text"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          required
-          placeholder="e.g., Inverter failure at Plant Alpha"
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-        />
+        <input type="text" name="title" value={formData.title} onChange={handleChange} required placeholder="e.g., Inverter failure at Plant Alpha" className={inputClass} />
       </div>
 
-      {/* Description */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={4}
-          placeholder="Describe the issue in detail..."
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-        />
+        <textarea name="description" value={formData.description} onChange={handleChange} rows={4} placeholder="Describe the issue in detail..." className={inputClass} />
       </div>
 
-      {/* Grid: Category, Priority, Assign */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          >
+          <select name="category" value={formData.category} onChange={handleChange} className={selectClass}>
             <option value="inverter">Inverter</option>
             <option value="panel">Panel</option>
             <option value="wiring">Wiring</option>
@@ -186,12 +158,7 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-          <select
-            name="priority"
-            value={formData.priority}
-            onChange={handleChange}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          >
+          <select name="priority" value={formData.priority} onChange={handleChange} className={selectClass}>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
@@ -200,12 +167,7 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Assign To</label>
-          <select
-            name="assigned_to"
-            value={formData.assigned_to}
-            onChange={handleChange}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          >
+          <select name="assigned_to" value={formData.assigned_to} onChange={handleChange} className={selectClass}>
             <option value="">Unassigned</option>
             {engineers.map((eng) => (
               <option key={eng.id} value={eng.id}>{eng.full_name}</option>
@@ -214,7 +176,6 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
         </div>
       </div>
 
-      {/* Image Upload */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Images (max 5)</label>
         <div className="flex flex-wrap gap-3 mb-3">
@@ -234,20 +195,9 @@ export default function NewTicketForm({ plants, engineers, userId, companyId }: 
         </label>
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={() => router.push('/tickets')}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-6 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button type="button" onClick={() => router.push('/tickets')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button type="submit" disabled={loading} className="px-6 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? 'Creating...' : 'Create Ticket'}
         </button>
       </div>

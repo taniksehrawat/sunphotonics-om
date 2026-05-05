@@ -9,6 +9,9 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 
+const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500";
+
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().setDate(1)).toISOString().split('T')[0],
@@ -82,11 +85,11 @@ export default function ReportsPage() {
       }
 
       const doc = new jsPDF();
-      
+
       // Title
       doc.setFontSize(16);
       doc.text('Sunphotonics O&M - Generation Report', 14, 20);
-      
+
       // Period info
       doc.setFontSize(10);
       doc.text(`Period: ${format(new Date(dateRange.start), 'MMM dd, yyyy')} - ${format(new Date(dateRange.end), 'MMM dd, yyyy')}`, 14, 30);
@@ -115,7 +118,7 @@ export default function ReportsPage() {
       // Summary
       const totalGen = data.reduce((sum: number, log: any) => sum + Number(log.generation_kwh), 0);
       const totalDowntime = data.reduce((sum: number, log: any) => sum + log.downtime_minutes, 0);
-      
+
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(11);
       doc.text(`Total Generation: ${totalGen.toLocaleString()} kWh`, 14, finalY);
@@ -213,7 +216,7 @@ export default function ReportsPage() {
               type="date"
               value={dateRange.start}
               onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className={inputClass}
             />
           </div>
           <div>
@@ -223,7 +226,7 @@ export default function ReportsPage() {
               value={dateRange.end}
               onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
               max={new Date().toISOString().split('T')[0]}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className={inputClass}
             />
           </div>
           <div>
@@ -231,7 +234,7 @@ export default function ReportsPage() {
             <select
               value={plantId}
               onChange={(e) => setPlantId(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className={selectClass}
             >
               <option value="">All Plants</option>
               {plants.map((p) => (

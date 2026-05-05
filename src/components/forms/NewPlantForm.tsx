@@ -9,6 +9,9 @@ interface Props {
   companyId: string;
 }
 
+const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+
 export default function NewPlantForm({ companyId }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -64,117 +67,41 @@ export default function NewPlantForm({ companyId }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      {/* Plant Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Plant Name *
-        </label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-          placeholder="e.g., Solar Plant Alpha"
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-        />
+        <label className="block text-sm font-medium text-gray-700 mb-2">Plant Name *</label>
+        <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="e.g., Solar Plant Alpha" className={inputClass} />
       </div>
 
-      {/* Location */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Location *
-        </label>
-        <input
-          type="text"
-          name="location"
-          value={formData.location}
-          onChange={handleChange}
-          required
-          placeholder="e.g., 123 Solar Road, Phoenix, AZ"
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-        />
+        <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+        <input type="text" name="location" value={formData.location} onChange={handleChange} required placeholder="e.g., 123 Solar Road, Phoenix, AZ" className={inputClass} />
       </div>
 
-      {/* Capacity & Date */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Capacity (kW) *
-          </label>
-          <input
-            type="number"
-            name="capacity_kw"
-            value={formData.capacity_kw}
-            onChange={handleChange}
-            step="0.01"
-            min="0"
-            required
-            placeholder="500"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Capacity (kW) *</label>
+          <input type="number" name="capacity_kw" value={formData.capacity_kw} onChange={handleChange} step="0.01" min="0" required placeholder="500" className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Installed Date *
-          </label>
-          <input
-            type="date"
-            name="installed_date"
-            value={formData.installed_date}
-            onChange={handleChange}
-            required
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Installed Date *</label>
+          <input type="date" name="installed_date" value={formData.installed_date} onChange={handleChange} required className={inputClass} />
         </div>
       </div>
 
-      {/* Latitude & Longitude */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Latitude
-          </label>
-          <input
-            type="number"
-            name="latitude"
-            value={formData.latitude}
-            onChange={handleChange}
-            step="any"
-            placeholder="33.4484"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
+          <input type="number" name="latitude" value={formData.latitude} onChange={handleChange} step="any" placeholder="33.4484" className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Longitude
-          </label>
-          <input
-            type="number"
-            name="longitude"
-            value={formData.longitude}
-            onChange={handleChange}
-            step="any"
-            placeholder="-112.0740"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
+          <input type="number" name="longitude" value={formData.longitude} onChange={handleChange} step="any" placeholder="-112.0740" className={inputClass} />
         </div>
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={() => router.push('/plants')}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-6 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button type="button" onClick={() => router.push('/plants')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button type="submit" disabled={loading} className="px-6 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? 'Adding...' : 'Add Plant'}
         </button>
       </div>
