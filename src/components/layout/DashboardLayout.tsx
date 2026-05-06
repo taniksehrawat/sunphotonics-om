@@ -51,16 +51,30 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
   const isAdminOrManager = profile.role === 'admin' || profile.role === 'manager';
   const isEngineer = profile.role === 'engineer';
 
+  // Navigation - dynamic based on user type
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Daily Logs', href: '/logs/new', icon: ClipboardList },
-    { name: 'View Logs', href: '/logs/view', icon: FileText },
-    { name: 'Tickets', href: '/tickets', icon: Ticket },
-    { name: 'Plants', href: '/plants', icon: Leaf },
-    { name: 'Reports', href: '/reports', icon: FileText },
   ];
 
-  // Only team admins/managers see Users and Clients
+  // Team members get full operational access
+  if (isTeam) {
+    navigation.push(
+      { name: 'Daily Logs', href: '/logs/new', icon: ClipboardList },
+      { name: 'View Logs', href: '/logs/view', icon: FileText },
+      { name: 'Tickets', href: '/tickets', icon: Ticket },
+      { name: 'Plants', href: '/plants', icon: Leaf },
+      { name: 'Reports', href: '/reports', icon: FileText }
+    );
+  }
+
+  // Clients only see their plants (view-only)
+  if (isClient) {
+    navigation.push(
+      { name: 'My Plants', href: '/plants', icon: Leaf }
+    );
+  }
+
+  // Only team admins/managers see Users and Clients management
   if (isTeam && isAdminOrManager) {
     navigation.push({ name: 'Users', href: '/users', icon: Users });
     navigation.push({ name: 'Clients', href: '/clients', icon: Building2 });
@@ -172,6 +186,21 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
             </Link>
           ))}
         </nav>
+
+        {/* User type indicator at bottom */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className={`rounded-lg px-3 py-2 text-xs ${
+            isClient 
+              ? 'bg-blue-50 text-blue-700' 
+              : isAdminOrManager 
+                ? 'bg-purple-50 text-purple-700' 
+                : 'bg-gray-50 text-gray-600'
+          }`}>
+            <p className="font-medium">
+              {isClient ? 'Plant Owner' : isAdminOrManager ? 'Management' : 'Field Engineer'}
+            </p>
+          </div>
+        </div>
       </aside>
 
       {/* Main content */}
@@ -211,7 +240,13 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{profile.full_name}</p>
                     <p className="text-xs text-gray-500">{user.email}</p>
-                    <span className="inline-flex mt-1 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                    <span className={`inline-flex mt-1 px-2 py-0.5 text-xs rounded-full ${
+                      isClient 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : isAdminOrManager 
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                    }`}>
                       {isClient ? 'Plant Owner' : profile.role}
                     </span>
                   </div>
