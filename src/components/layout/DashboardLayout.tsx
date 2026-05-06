@@ -172,18 +172,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
             </Link>
           ))}
         </nav>
-
-        {/* Role badge at bottom of sidebar */}
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500">
-            <span className="font-medium text-gray-700">
-              {isClient ? 'Plant Owner' : isAdminOrManager ? 'Management' : 'Field Engineer'}
-            </span>
-            <span className="block text-xs text-gray-400 mt-0.5">
-              {isClient ? 'View only' : isEngineer ? 'Limited access' : 'Full access'}
-            </span>
-          </div>
-        </div>
       </aside>
 
       {/* Main content */}
