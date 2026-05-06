@@ -38,6 +38,11 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
   useEffect(() => {
     setMounted(true);
   }, []);
+    // Auto-close sidebar and menu on page navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+    setUserMenuOpen(false);
+  }, [pathname]);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
