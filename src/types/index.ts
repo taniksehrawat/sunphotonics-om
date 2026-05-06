@@ -1,12 +1,16 @@
 // User roles
 export type UserRole = 'admin' | 'manager' | 'engineer';
 
+// Role type (team member vs plant owner/client)
+export type RoleType = 'team' | 'client';
+
 // User profile
 export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
   role: UserRole;
+  role_type: RoleType;
   company_id: string;
   phone?: string;
   avatar_url?: string;
@@ -32,6 +36,7 @@ export interface Company {
 export interface Plant {
   id: string;
   company_id: string;
+  client_id?: string;
   name: string;
   location: string;
   capacity_kw: number;
@@ -124,4 +129,25 @@ export interface RevenueChartData {
   date: string;
   revenue: number;
   generation: number;
+}
+
+// Client
+export interface Client {
+  id: string;
+  email: string;
+  full_name: string;
+  company_id: string;
+  role_type: 'client';
+  created_at: string;
+}
+
+// Client-Plant Assignment
+export interface ClientPlant {
+  id: string;
+  client_id: string;
+  plant_id: string;
+  plant_name?: string;
+  client_name?: string;
+  client_email?: string;
+  created_at: string;
 }

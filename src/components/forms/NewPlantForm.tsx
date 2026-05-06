@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
@@ -10,22 +10,38 @@ interface Props {
 }
 
 const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
 
 export default function NewPlantForm({ companyId }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     capacity_kw: '',
     installed_date: '',
     tariff_per_kwh: '5.00',
+    client_id: '',
     latitude: '',
     longitude: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const fetchClients = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('company_id', companyId)
+        .eq('role_type', 'client')
+        .order('full_name');
+      setClients(data || []);
+    };
+    fetchClients();
+  }, [companyId, supabase]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -46,7 +62,7 @@ export default function NewPlantForm({ companyId }: Props) {
         return;
       }
 
-      const { error } = await supabase
+      const { data: plant, error } = await supabase
         .from('plants')
         .insert({
           company_id: companyId,
@@ -55,12 +71,23 @@ export default function NewPlantForm({ companyId }: Props) {
           capacity_kw: parseFloat(formData.capacity_kw),
           installed_date: formData.installed_date,
           tariff_per_kwh: parseFloat(formData.tariff_per_kwh),
+          client_id: formData.client_id || null,
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           status: 'active',
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // If client assigned, add to client_plants
+      if (formData.client_id && plant) {
+        await supabase.from('client_plants').insert({
+          client_id: formData.client_id,
+          plant_id: plant.id,
+        });
+      }
 
       toast.success('Plant added successfully!');
       router.push('/plants');
@@ -97,6 +124,31 @@ export default function NewPlantForm({ companyId }: Props) {
           <label className="block text-sm font-medium text-gray-700 mb-2">Tariff (₹/kWh) *</label>
           <input type="number" name="tariff_per_kwh" value={formData.tariff_per_kwh} onChange={handleChange} step="0.01" min="0.01" required placeholder="5.00" className={inputClass} />
         </div>
+      </div>
+
+      {/* Client Assignment */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Assign to Client (Plant Owner)
+        </label>
+        <select
+          name="client_id"
+          value={formData.client_id}
+          onChange={handleChange}
+          className={selectClass}
+        >
+          <option value="">No client assigned</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.full_name} ({client.email})
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-400 mt-1">
+          {clients.length === 0 
+            ? 'No clients added yet. Add clients from the Clients page first.'
+            : 'Client will be able to view this plant\'s data in their portal'}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

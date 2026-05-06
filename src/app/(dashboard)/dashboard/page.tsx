@@ -7,6 +7,7 @@ import TicketOverview from '@/components/dashboard/TicketOverview';
 import RevenueStats from '@/components/dashboard/RevenueStats';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import PlantRevenueTable from '@/components/dashboard/PlantRevenueTable';
+import DashboardBanner from '@/components/dashboard/DashboardBanner';
 import { calculateTotalRevenue, groupRevenueByDate } from '@/utils/revenue';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,11 @@ export const revalidate = 60;
 export default async function DashboardPage() {
   const profile = await getProfile();
   const supabase = await createClient();
+
+  // Check if user is client or team
+  const isClient = profile.role_type === 'client';
+  const isEngineer = profile.role === 'engineer' && profile.role_type !== 'client';
+  const showRevenue = !isClient && !isEngineer;
 
   const today = new Date().toISOString().split('T')[0];
   const thirtyDaysAgo = new Date();
@@ -37,6 +43,36 @@ export default async function DashboardPage() {
   const lastMonthEnd = new Date();
   lastMonthEnd.setDate(0);
 
+  // For clients, only fetch their assigned plants
+  let plantFilter = supabase
+    .from('plants')
+    .select('id')
+    .eq('company_id', profile.company_id);
+  
+  if (isClient) {
+    const { data: clientPlants } = await supabase
+      .from('client_plants')
+      .select('plant_id')
+      .eq('client_id', profile.id);
+    
+    const plantIds = clientPlants?.map(p => p.plant_id) || [];
+    if (plantIds.length > 0) {
+      plantFilter = plantFilter.in('id', plantIds);
+    }
+  }
+  
+  const { data: userPlants } = await plantFilter;
+  const plantIds = userPlants?.map(p => p.id) || [];
+
+  // Build base queries
+  const baseQuery = (table: string) => {
+    let query = supabase.from(table).select('*').eq('company_id', profile.company_id);
+    if (isClient && plantIds.length > 0) {
+      query = query.in('plant_id', plantIds);
+    }
+    return query;
+  };
+
   // Fetch all dashboard data in parallel
   const [
     todayLogsRes,
@@ -48,24 +84,28 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from('daily_logs')
-      .select('generation_kwh, downtime_minutes')
+      .select('generation_kwh, downtime_minutes, plant_id')
       .eq('company_id', profile.company_id)
-      .eq('log_date', today),
+      .eq('log_date', today)
+      .in('plant_id', isClient && plantIds.length > 0 ? plantIds : (await supabase.from('plants').select('id').eq('company_id', profile.company_id)).data?.map(p => p.id) || []),
     supabase
       .from('plants')
       .select('count', { count: 'exact' })
       .eq('company_id', profile.company_id)
-      .eq('status', 'active'),
+      .eq('status', 'active')
+      .in('id', isClient && plantIds.length > 0 ? plantIds : (await supabase.from('plants').select('id').eq('company_id', profile.company_id)).data?.map(p => p.id) || []),
     supabase
       .from('tickets')
       .select('count', { count: 'exact' })
       .eq('company_id', profile.company_id)
-      .in('status', ['open', 'in_progress']),
+      .in('status', ['open', 'in_progress'])
+      .in('plant_id', isClient && plantIds.length > 0 ? plantIds : (await supabase.from('plants').select('id').eq('company_id', profile.company_id)).data?.map(p => p.id) || []),
     supabase
       .from('daily_logs')
       .select('log_date, generation_kwh, plant_id, plants(name)')
       .eq('company_id', profile.company_id)
       .gte('log_date', thirtyDaysAgo.toISOString().split('T')[0])
+      .in('plant_id', isClient && plantIds.length > 0 ? plantIds : (await supabase.from('plants').select('id').eq('company_id', profile.company_id)).data?.map(p => p.id) || [])
       .order('log_date', { ascending: true }),
     supabase
       .from('alerts')
@@ -76,9 +116,10 @@ export default async function DashboardPage() {
       .limit(5),
     supabase
       .from('daily_logs')
-      .select('log_date, generation_kwh, plants!inner(name, tariff_per_kwh, capacity_kw)')
+      .select('log_date, generation_kwh, plants(name, tariff_per_kwh, capacity_kw)')
       .eq('company_id', profile.company_id)
       .gte('log_date', firstOfYear.toISOString().split('T')[0])
+      .in('plant_id', isClient && plantIds.length > 0 ? plantIds : (await supabase.from('plants').select('id').eq('company_id', profile.company_id)).data?.map(p => p.id) || [])
       .order('log_date', { ascending: true }),
   ]);
 
@@ -151,18 +192,51 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm">Welcome back, {profile.full_name}</p>
+        <h1 className="text-xl font-bold text-gray-900">
+          {isClient ? 'My Solar Plants' : 'Dashboard'}
+        </h1>
+        <p className="text-gray-500 text-sm">
+          {isClient 
+            ? `Welcome, ${profile.full_name} - View your plant performance`
+            : `Welcome back, ${profile.full_name}`
+          }
+        </p>
       </div>
 
-      {/* Revenue Stats */}
-      <RevenueStats
-        todayRevenue={todayRevenue}
-        monthRevenue={monthRevenue}
-        yearRevenue={yearRevenue}
-        yesterdayRevenue={yesterdayRevenue}
-        lastMonthRevenue={lastMonthRevenue}
-      />
+      {/* Banner - only for team members */}
+      {!isClient && <DashboardBanner />}
+
+      {/* Revenue Stats - hidden from engineers and clients */}
+      {showRevenue && (
+        <RevenueStats
+          todayRevenue={todayRevenue}
+          monthRevenue={monthRevenue}
+          yearRevenue={yearRevenue}
+          yesterdayRevenue={yesterdayRevenue}
+          lastMonthRevenue={lastMonthRevenue}
+        />
+      )}
+
+      {/* For clients: Show revenue summary card */}
+      {isClient && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Your Revenue Summary</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Today</p>
+              <p className="text-xl font-bold text-green-600">₹{todayRevenue.toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">This Month</p>
+              <p className="text-xl font-bold text-green-600">₹{monthRevenue.toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">This Year</p>
+              <p className="text-xl font-bold text-green-600">₹{yearRevenue.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Generation Stats */}
       <DashboardStats
@@ -172,8 +246,8 @@ export default async function DashboardPage() {
         openTickets={openTickets?.[0]?.count || 0}
       />
 
-      {/* Revenue Chart */}
-      <RevenueChart data={revenueChartData} />
+      {/* Revenue Chart - hidden from engineers */}
+      {showRevenue && <RevenueChart data={revenueChartData} />}
 
       {/* Generation Chart + Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -185,8 +259,8 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Plant Revenue Table */}
-      <PlantRevenueTable data={plantRevenueData} />
+      {/* Plant Revenue Table - hidden from engineers */}
+      {showRevenue && <PlantRevenueTable data={plantRevenueData} />}
 
       {/* Ticket Overview */}
       <TicketOverview companyId={profile.company_id} />

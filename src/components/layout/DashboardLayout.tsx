@@ -17,7 +17,7 @@ import {
   LogOut,
   Menu,
   X,
-  AlertTriangle,
+  Building2,
 } from 'lucide-react';
 
 interface Props {
@@ -38,11 +38,18 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
   useEffect(() => {
     setMounted(true);
   }, []);
-    // Auto-close sidebar and menu on page navigation
+
+  // Auto-close sidebar and menu on page navigation
   useEffect(() => {
     setSidebarOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
+
+  // Check user type
+  const isTeam = profile.role_type === 'team' || !profile.role_type;
+  const isClient = profile.role_type === 'client';
+  const isAdminOrManager = profile.role === 'admin' || profile.role === 'manager';
+  const isEngineer = profile.role === 'engineer';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -53,8 +60,10 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
     { name: 'Reports', href: '/reports', icon: FileText },
   ];
 
-  if (profile.role === 'admin' || profile.role === 'manager') {
+  // Only team admins/managers see Users and Clients
+  if (isTeam && isAdminOrManager) {
     navigation.push({ name: 'Users', href: '/users', icon: Users });
+    navigation.push({ name: 'Clients', href: '/clients', icon: Building2 });
   }
 
   const handleLogout = async () => {
@@ -69,11 +78,9 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
   };
 
   // During SSR and initial hydration, render a simplified version
-  // that matches exactly what the server renders
   if (!mounted) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Sidebar skeleton matching server render */}
         <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 lg:translate-x-0 lg:static lg:z-auto">
           <div className="h-16 flex items-center px-6 border-b border-gray-200">
             <div className="flex items-center space-x-2">
@@ -94,7 +101,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
           </nav>
         </aside>
 
-        {/* Main content skeleton */}
         <div className="lg:pl-64">
           <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
             <div className="flex items-center justify-between h-14 px-4 sm:px-6">
@@ -116,7 +122,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
     );
   }
 
-  // Full interactive version rendered after hydration
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar backdrop */}
@@ -167,6 +172,18 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
             </Link>
           ))}
         </nav>
+
+        {/* Role badge at bottom of sidebar */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500">
+            <span className="font-medium text-gray-700">
+              {isClient ? 'Plant Owner' : isAdminOrManager ? 'Management' : 'Field Engineer'}
+            </span>
+            <span className="block text-xs text-gray-400 mt-0.5">
+              {isClient ? 'View only' : isEngineer ? 'Limited access' : 'Full access'}
+            </span>
+          </div>
+        </div>
       </aside>
 
       {/* Main content */}
@@ -194,7 +211,9 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-medium text-gray-900">{profile.full_name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{profile.role}</p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {isClient ? 'Plant Owner' : profile.role}
+                  </p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-gray-500" />
               </button>
@@ -204,6 +223,9 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{profile.full_name}</p>
                     <p className="text-xs text-gray-500">{user.email}</p>
+                    <span className="inline-flex mt-1 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                      {isClient ? 'Plant Owner' : profile.role}
+                    </span>
                   </div>
                   <Link
                     href="/settings"
