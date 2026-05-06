@@ -34,29 +34,23 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
   const router = useRouter();
   const supabase = createClient();
 
-  // Fix hydration: Only render dynamic content after client-side mount
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-close sidebar and menu on page navigation
   useEffect(() => {
     setSidebarOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
 
-  // Check user type
   const isTeam = profile.role_type === 'team' || !profile.role_type;
   const isClient = profile.role_type === 'client';
   const isAdminOrManager = profile.role === 'admin' || profile.role === 'manager';
-  const isEngineer = profile.role === 'engineer';
 
-  // Navigation - dynamic based on user type
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   ];
 
-  // Team members get full operational access
   if (isTeam) {
     navigation.push(
       { name: 'Daily Logs', href: '/logs/new', icon: ClipboardList },
@@ -67,14 +61,12 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
     );
   }
 
-  // Clients only see their plants (view-only)
   if (isClient) {
     navigation.push(
       { name: 'My Plants', href: '/plants', icon: Leaf }
     );
   }
 
-  // Only team admins/managers see Users and Clients management
   if (isTeam && isAdminOrManager) {
     navigation.push({ name: 'Users', href: '/users', icon: Users });
     navigation.push({ name: 'Clients', href: '/clients', icon: Building2 });
@@ -91,7 +83,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
     return pathname.startsWith(href);
   };
 
-  // During SSR and initial hydration, render a simplified version
   if (!mounted) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -138,7 +129,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden"
@@ -146,7 +136,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out
@@ -186,26 +175,9 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
             </Link>
           ))}
         </nav>
-
-        {/* User type indicator at bottom */}
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className={`rounded-lg px-3 py-2 text-xs ${
-            isClient 
-              ? 'bg-blue-50 text-blue-700' 
-              : isAdminOrManager 
-                ? 'bg-purple-50 text-purple-700' 
-                : 'bg-gray-50 text-gray-600'
-          }`}>
-            <p className="font-medium">
-              {isClient ? 'Plant Owner' : isAdminOrManager ? 'Management' : 'Field Engineer'}
-            </p>
-          </div>
-        </div>
       </aside>
 
-      {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top navbar */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="flex items-center justify-between h-14 px-4 sm:px-6">
             <button
@@ -217,7 +189,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
 
             <div className="flex-1" />
 
-            {/* User menu */}
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -240,15 +211,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">{profile.full_name}</p>
                     <p className="text-xs text-gray-500">{user.email}</p>
-                    <span className={`inline-flex mt-1 px-2 py-0.5 text-xs rounded-full ${
-                      isClient 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : isAdminOrManager 
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {isClient ? 'Plant Owner' : profile.role}
-                    </span>
                   </div>
                   <Link
                     href="/settings"
@@ -271,7 +233,6 @@ export default function DashboardLayoutClient({ user, profile, children }: Props
           </div>
         </header>
 
-        {/* Page content */}
         <main className="px-4 sm:px-6 lg:px-8 pt-0 pb-4">
           {children}
         </main>
