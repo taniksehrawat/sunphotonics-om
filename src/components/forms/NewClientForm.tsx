@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
@@ -10,20 +10,44 @@ interface Props {
 }
 
 const inputClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
+const selectClass = "block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-900 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm";
 
 export default function NewClientForm({ companyId }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const [plants, setPlants] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     password: '',
     phone: '',
+    selectedPlants: [] as string[],
   });
+
+  useEffect(() => {
+    const fetchPlants = async () => {
+      const { data } = await supabase
+        .from('plants')
+        .select('id, name, capacity_kw')
+        .eq('company_id', companyId)
+        .order('name');
+      setPlants(data || []);
+    };
+    fetchPlants();
+  }, [companyId, supabase]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handlePlantToggle = (plantId: string) => {
+    setFormData((prev) => {
+      const selected = prev.selectedPlants.includes(plantId)
+        ? prev.selectedPlants.filter((id) => id !== plantId)
+        : [...prev.selectedPlants, plantId];
+      return { ...prev, selectedPlants: selected };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +63,12 @@ export default function NewClientForm({ companyId }: Props) {
 
       if (formData.password.length < 6) {
         toast.error('Password must be at least 6 characters');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.selectedPlants.length === 0) {
+        toast.error('Please assign at least one plant to the client');
         setLoading(false);
         return;
       }
@@ -59,7 +89,7 @@ export default function NewClientForm({ companyId }: Props) {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Update profile to set role_type as client
+        // Update profile
         await supabase
           .from('profiles')
           .update({
@@ -68,9 +98,23 @@ export default function NewClientForm({ companyId }: Props) {
             phone: formData.phone || null,
           })
           .eq('id', authData.user.id);
+
+        // Assign selected plants
+        const plantAssignments = formData.selectedPlants.map((plantId) => ({
+          client_id: authData.user!.id,
+          plant_id: plantId,
+        }));
+
+        await supabase.from('client_plants').insert(plantAssignments);
+
+        // Also update plants table client_id for first plant
+        await supabase
+          .from('plants')
+          .update({ client_id: authData.user.id })
+          .in('id', formData.selectedPlants);
       }
 
-      toast.success(`Client "${formData.full_name}" created successfully!`);
+      toast.success(`Client "${formData.full_name}" created with ${formData.selectedPlants.length} plant(s)!`);
       router.push('/clients');
       router.refresh();
     } catch (err: any) {
@@ -84,84 +128,67 @@ export default function NewClientForm({ companyId }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-        <input
-          type="text"
-          name="full_name"
-          value={formData.full_name}
-          onChange={handleChange}
-          required
-          placeholder="e.g., Rajesh Sharma"
-          className={inputClass}
-        />
+        <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required placeholder="e.g., Rajesh Sharma" className={inputClass} />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          placeholder="rajesh@example.com"
-          className={inputClass}
-        />
-        <p className="text-xs text-gray-400 mt-1">Client will use this email to login</p>
+        <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="rajesh@example.com" className={inputClass} />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
-        <input
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          placeholder="Min 6 characters"
-          className={inputClass}
-        />
+        <input type="password" name="password" value={formData.password} onChange={handleChange} required placeholder="Min 6 characters" className={inputClass} />
+        <p className="text-xs text-gray-400 mt-1">Share this password with the client. They can change it later.</p>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Phone (Optional)</label>
-        <input
-          type="text"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          placeholder="+91 9876543210"
-          className={inputClass}
-        />
+        <input type="text" name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 9876543210" className={inputClass} />
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-        <p className="font-medium mb-1">What the client can do:</p>
-        <ul className="list-disc list-inside space-y-1 text-blue-700">
-          <li>View their assigned plants</li>
-          <li>See generation and revenue data</li>
-          <li>Download reports</li>
-        </ul>
-        <p className="mt-2 font-medium">What they cannot do:</p>
-        <ul className="list-disc list-inside space-y-1 text-blue-700">
-          <li>Submit logs or create tickets</li>
-          <li>See other clients' data</li>
-          <li>See financials of other plants</li>
-        </ul>
+      {/* Plant Assignment */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Assign Plants * <span className="text-xs text-gray-400">(Select all that apply)</span>
+        </label>
+        {plants.length === 0 ? (
+          <div className="bg-gray-50 rounded-lg p-4 text-center text-sm text-gray-400">
+            No plants available. Add plants first from the Plants page.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+            {plants.map((plant) => (
+              <label
+                key={plant.id}
+                className={`flex items-center p-2 rounded-lg cursor-pointer transition-colors ${
+                  formData.selectedPlants.includes(plant.id)
+                    ? 'bg-yellow-50 border border-yellow-200'
+                    : 'hover:bg-gray-50 border border-transparent'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.selectedPlants.includes(plant.id)}
+                  onChange={() => handlePlantToggle(plant.id)}
+                  className="h-4 w-4 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500"
+                />
+                <span className="ml-3 text-sm text-gray-900">{plant.name}</span>
+                <span className="ml-auto text-xs text-gray-400">{plant.capacity_kw} kW</span>
+              </label>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-gray-400 mt-1">
+          Selected: {formData.selectedPlants.length} plant(s)
+        </p>
       </div>
 
       <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={() => router.push('/clients')}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
+        <button type="button" onClick={() => router.push('/clients')} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-6 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button type="submit" disabled={loading} className="px-6 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? 'Creating...' : 'Create Client'}
         </button>
       </div>

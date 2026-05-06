@@ -1,16 +1,24 @@
 import { getProfile, requireRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase-server';
 import Link from 'next/link';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default async function ClientsPage() {
   const profile = await requireRole(['admin', 'manager']);
   const supabase = await createClient();
 
+  // Fetch all clients with their assigned plants
   const { data: clients } = await supabase
     .from('profiles')
-    .select('*, client_plants(count)')
+    .select(`
+      *,
+      client_plants(
+        id,
+        plant_id,
+        plants(name)
+      )
+    `)
     .eq('company_id', profile.company_id)
     .eq('role_type', 'client')
     .order('created_at', { ascending: false });
@@ -31,44 +39,54 @@ export default async function ClientsPage() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plants</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Added</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {clients?.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                  <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No clients yet</p>
-                </td>
-              </tr>
-            )}
-            {clients?.map((client: any) => (
-              <tr key={client.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{client.full_name}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{client.email}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{client.client_plants?.[0]?.count || 0} plants</td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {format(new Date(client.created_at), 'MMM dd, yyyy')}
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <Link href={`/clients/${client.id}`} className="text-yellow-600 hover:text-yellow-700 font-medium">
+      {clients?.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400">
+          <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="text-lg">No clients yet</p>
+          <p className="text-sm mt-1">Add plant owners to give them access to their plants</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {clients?.map((client: any) => (
+            <div key={client.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-lg">
+                    {client.full_name?.charAt(0)?.toUpperCase() || 'C'}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{client.full_name}</h3>
+                    <p className="text-sm text-gray-500">{client.email}</p>
+                    {client.phone && <p className="text-sm text-gray-400">{client.phone}</p>}
+                    <p className="text-xs text-gray-400 mt-1">
+                      Added {format(new Date(client.created_at), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500 mb-1">
+                    <Building2 className="h-4 w-4 inline mr-1" />
+                    {client.client_plants?.length || 0} Plant{(client.client_plants?.length || 0) !== 1 ? 's' : ''}
+                  </p>
+                  {client.client_plants?.length > 0 && (
+                    <div className="text-xs text-gray-400 space-y-0.5">
+                      {client.client_plants?.map((cp: any) => (
+                        <p key={cp.id}>{cp.plants?.name}</p>
+                      ))}
+                    </div>
+                  )}
+                  <Link
+                    href={`/clients/${client.id}`}
+                    className="inline-block mt-2 text-sm text-yellow-600 hover:text-yellow-700 font-medium"
+                  >
                     Manage Plants →
                   </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
